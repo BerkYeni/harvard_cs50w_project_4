@@ -1,0 +1,35 @@
+{% extends "y/layout.html" %}
+
+{% block body %}
+  {% if user.is_authenticated %}
+  <div style="background-color: white; border: 1px solid cornsilk; border-radius: 10px; padding: 15px 30px; margin-top: 20px;">
+    <h3>New Post</h3>
+    <form action="" method="post">
+      {% csrf_token %}
+      <div style="display: flex; flex-direction: column;">
+      {{ postForm.content }}
+      <div style="display: flex; justify-content: end; padding-top: 5px;">
+        <input type="submit" name="newPost" value="Post" style="display: inline-block;">
+      </div>
+      </div>
+    </form>
+  </div>
+  {% endif %}
+
+<script>
+    // Prevent resubmitting form alert
+    if ( window.history.replaceState ) {
+        window.history.replaceState( null, null, window.location.href );
+    }
+</script>
+
+  <!-- <form action="">
+    <div style="display: flex; flex-direction: column;">
+    <textarea name="content" id="new-post-input" cols="100" rows="5" style="display: inline-block;"></textarea>
+    <div style="display: flex; justify-content: end; padding-top: 5px;">
+      <input type="submit" name="newPost" value="Post" style="display: inline-block;">
+    </div>
+    </div>
+  </form> -->
+  </div>
+{% endblock %}
