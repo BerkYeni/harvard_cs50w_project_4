@@ -18,6 +18,9 @@ class Post(m.Model):
     def __str__(self) -> str:
         return f"{self.poster}: '{self.content}' at {self.date}"
 
+    def likeAmount(self):
+        return self.liked_by.count()
+
     # def save(self, *args, **kwargs):
     #     ''' On save, update timestamps '''
     #     if not self.id:

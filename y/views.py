@@ -28,15 +28,16 @@ def index(request):
             return HttpResponseRedirect(reverse("index"))
 
     postForm = PostForm
-    # awooga = Post(content="fjdskla", poster=request.user, date=timezone.now())
-    # awooga = Post(content="fjdskla", poster=request.user)
-    # awooga.save()
-    # print(awooga, awooga.id)
+    # posts = Post.objects.all()
+    posts = Post.objects.order_by("-date")
+    for post in posts:
+        post.likes = post.likeAmount()
 
-    # testing = Post.objects.filter(poster=request.user)[0]
-    # print(testing)
-    # print(testing, testing.id, testing.poster, testing.date, testing.content)
-    return render(request, "y/index.html", {"postForm": postForm})
+    return render(request, "y/index.html", {
+        "postForm": postForm,
+        # "posts": sorted(posts, key=lambda post: post.date, reverse=True),
+        "posts": posts,
+    })
 
 
 def login_view(request):
@@ -89,3 +90,10 @@ def register(request):
         return HttpResponseRedirect(reverse("index"))
     else:
         return render(request, "y/register.html")
+
+
+def userView(request, username):
+    userData = User.objects.get(username=username)
+    return render(request, "y/user.html", {
+        "userData": userData,
+    })
