@@ -32,6 +32,8 @@
       <div><strong>{{post.content}}</strong></div>
       <div>Likes: {{ post.likes }}</div>
     </div>
+  {% empty %}
+    <div>No posts.</div>
   {% endfor %}
 
 <script>

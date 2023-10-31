@@ -30,8 +30,6 @@ def index(request):
     postForm = PostForm
     # posts = Post.objects.all()
     posts = Post.objects.order_by("-date")
-    for post in posts:
-        post.likes = post.likeAmount()
 
     return render(request, "y/index.html", {
         "postForm": postForm,
@@ -94,6 +92,38 @@ def register(request):
 
 def userView(request, username):
     userData = User.objects.get(username=username)
+
+    if request.user.is_authenticated:
+        if request.method == "POST":
+            if "follow" in request.POST:
+                try:
+                    request.user.followUser(userData)
+                except ValueError:
+                    pass
+                return HttpResponseRedirect(reverse("user", args=[username]))
+
+            if "unfollow" in request.POST:
+                request.user.following.remove(userData)
+                return HttpResponseRedirect(reverse("user", args=[username]))
+
+    posts = userData.user_posts.order_by("-date")
+    selfPage = username == request.user.username
+    isFollowed = bool(request.user.following.filter(username=username).count())
     return render(request, "y/user.html", {
         "userData": userData,
+        "posts": posts,
+        "followerAmount": userData.followerAmount(),
+        "followingAmount": userData.followingAmount(),
+        "selfPage": selfPage,
+        "isFollowed": isFollowed,
+    })
+
+def followingView(request):
+    if not request.user.is_authenticated:
+        return HttpResponseRedirect(reverse("login"))
+
+    posts = Post.objects.filter(poster__in=request.user.following.all()).order_by("-date")
+
+    return render(request,  "y/following.html", {
+        "posts": sorted(posts, key=lambda post: post.date, reverse=True),
     })

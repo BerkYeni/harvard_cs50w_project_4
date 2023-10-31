@@ -2,24 +2,7 @@
 
 {% block body %}
   <div style="background-color: white; border: 1px solid cornsilk; border-radius: 10px; padding: 15px 30px; margin-top: 20px;">
-    <div style="display: flex; align-items: center;">
-      <h1 style="display: inline-block;">{{userData.username}}</h1>
-      {% if not selfPage %}
-        {% if user.is_authenticated %}
-          <form method="post" action="">
-            {% csrf_token %}
-            <input 
-              style="display: inline-block; margin-left: 30px;" 
-              type="submit" 
-              value="{% if isFollowed %}Un-Follow{% else %}Follow{% endif %}" 
-              name="{% if isFollowed %}unfollow{% else %}follow{% endif %}"
-            >
-          </form>
-        {% endif %}
-      {% endif %}
-      <div style="margin-left: 30px;">Followers: {{followerAmount}}</div>
-      <div style="margin-left: 30px;">Following: {{followingAmount}}</div>
-    </div>
+    <h1 style="display: inline-block;">Following</h1>
 
     <div style="background-color: white; border: 1px solid cornsilk; border-radius: 10px; padding: 15px 30px; margin-top: 20px;">
       {% for post in posts %}
@@ -39,7 +22,7 @@
           <div>Likes: {{ post.likes }}</div>
         </div>
       {% empty %}
-        <div>No user posts.</div>
+        <div>No posts.</div>
       {% endfor %}
     </div>
   </div>
