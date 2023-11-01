@@ -4,6 +4,7 @@ from . import views
 
 urlpatterns = [
     path("", views.index, name="index"),
+    path("<int:page>", views.index, name="indexPagination"),
     path("login", views.login_view, name="login"),
     path("user/<str:username>", views.userView, name="user"),
     path("following", views.followingView, name="following"),

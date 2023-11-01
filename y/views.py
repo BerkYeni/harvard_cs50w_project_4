@@ -9,7 +9,12 @@ from .forms import PostForm
 from .models import User, Post
 
 
-def index(request):
+def index(request, page="1"):
+    pageInt = int(page)
+    pageIndex = pageInt - 1
+    if pageInt < 1:
+        return HttpResponseRedirect(reverse("index"))
+
     if request.method == "POST":
         if not request.user.is_authenticated:
             return HttpResponseRedirect(reverse("index"))
@@ -27,14 +32,32 @@ def index(request):
             post.save()
             return HttpResponseRedirect(reverse("index"))
 
+    # note: check off by one errors
     postForm = PostForm
-    # posts = Post.objects.all()
-    posts = Post.objects.order_by("-date")
+    currentPageExists = True
+    try:
+        newestInThePagePost = Post.objects.order_by("-date")[pageIndex * 10]
+        posts = Post.objects.order_by("-date").filter(date__lt=newestInThePagePost.date)[:10]
+    except IndexError:
+        currentPageExists = False
+
+    previousPageNumber = pageInt - 1 if pageInt - 1 >= 1 else None
+
+    # check if the next page exists by querying for next pages query
+    nextPageExists = True
+    try:
+        Post.objects.order_by("-date")[( pageIndex + 1 ) * 10]
+    except IndexError:
+        nextPageExists = False
+
+    nextPageNumber = pageInt + 1 if nextPageExists else None
 
     return render(request, "y/index.html", {
         "postForm": postForm,
         # "posts": sorted(posts, key=lambda post: post.date, reverse=True),
         "posts": posts,
+        "nextPageNumber": nextPageNumber,
+        "previousPageNumber": previousPageNumber,
     })
 
 
