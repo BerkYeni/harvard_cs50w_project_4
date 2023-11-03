@@ -25,5 +25,17 @@
         <div>No posts.</div>
       {% endfor %}
     </div>
+
+  <div style="display: flex; justify-content: space-around; margin-top: 20px;">
+      <div>
+      {% if previousPageNumber %}
+        <a href="{% url 'followingPagination' page=previousPageNumber %}"><button style="padding: 5px 15px; margin-right: 10px;">Previous</button></a>
+      {% endif %}
+      {% if nextPageNumber %}
+        <a href="{% url 'followingPagination' page=nextPageNumber %}"><button style="padding: 5px 15px;">Next</button></a>
+      {% endif %}
+      </div>
+  </div>
+
   </div>
 {% endblock %}
