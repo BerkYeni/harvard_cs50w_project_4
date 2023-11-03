@@ -27,9 +27,22 @@
     >
       <div style="display: flex; justify-content: space-between;">
         <a href="{% url 'user' username=post.poster.username %}"><div>{{post.poster}}:</div></a>
-        <div>{{post.date}}</div>
+        <div style="display: flex;">
+          {% if post.poster.username == user.username %}
+            <button class="editBtn" data-id="{{post.id}}" style="margin: 0 20px;">Edit</button>
+          {% endif %}
+          <div>{{post.date}}</div>
+        </div>
       </div>
-      <div><strong>{{post.content}}</strong></div>
+      <div class="contentDiv" data-id="{{post.id}}">
+        <strong class="contentText" data-id="{{post.id}}">{{post.content}}</strong>
+        <div hidden class="editArea" data-id="{{post.id}}" style="display: flex; flex-direction: column;">
+          <textarea>{{post.content}}</textarea>
+          <div style="display: flex; justify-content: end;">
+            <button>Save</button>
+          </div>
+        </div>
+      </div>
       <div>Likes: {{ post.likes }}</div>
     </div>
   {% empty %}
@@ -52,6 +65,43 @@
     if ( window.history.replaceState ) {
         window.history.replaceState( null, null, window.location.href );
     }
+
+    function main() {
+      const editButtons = document.querySelectorAll(".editBtn");
+      const contentTexts = Array.from(document.querySelectorAll(".contentText"));
+      const contentDivs = Array.from(document.querySelectorAll(".contentDiv"));
+      const editAreas = Array.from(document.querySelectorAll(".editArea"));
+
+      editButtons.forEach((btn) => {
+        btn.onclick = (event) => {
+          const postId = btn.dataset.id;
+          const contentText = contentTexts.filter((div) => div.dataset.id === postId)[0]
+          contentText.hidden = !contentText.hidden;
+          
+          const editArea = editAreas.filter((div) => div.dataset.id === postId)[0];
+          editArea.hidden = !editArea.hidden;
+
+
+          // // create and append texarea inside
+          // const textAreaWrapper = document.createElement("div");
+          // textAreaWrapper.style = "display: flex; flex-direction: column;";
+          // const textArea = document.createElement("textarea");
+          // textArea.textContent = textContent;
+          // textAreaWrapper.appendChild(textArea);
+          // contentDiv.appendChild(textAreaWrapper);
+
+          // // append save button
+          // const saveBtnWrapper = document.createElement("div");
+          // saveBtnWrapper.style = "display: flex; justify-content: end;";
+          // const saveBtn = document.createElement("button");
+          // saveBtn.textContent = "Save"
+          // saveBtnWrapper.appendChild(saveBtn);
+          // contentDiv.append(saveBtnWrapper);
+        }
+      })
+    }
+
+    document.addEventListener("DOMContentLoaded", main);
 </script>
 
   <!-- <form action="">
