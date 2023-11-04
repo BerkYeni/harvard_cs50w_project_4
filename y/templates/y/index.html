@@ -39,7 +39,7 @@
         <div hidden class="editArea" data-id="{{post.id}}" style="display: flex; flex-direction: column;">
           <textarea>{{post.content}}</textarea>
           <div style="display: flex; justify-content: end;">
-            <button>Save</button>
+            <button class="saveBtn" data-id="{{post.id}}">Save</button>
           </div>
         </div>
       </div>
@@ -81,6 +81,28 @@
           const editArea = editAreas.filter((div) => div.dataset.id === postId)[0];
           editArea.hidden = !editArea.hidden;
 
+          const saveBtns = Array.from(document.querySelectorAll(".saveBtn"));
+          console.log(saveBtns)
+          const saveBtn = saveBtns.filter((btn) => btn.dataset.id === postId)[0];
+          console.log(saveBtn)
+          const csrftoken = getCookie('csrftoken');
+
+          saveBtn.onclick = async (event) => {
+            const content = editArea.querySelector("textarea").value;
+            console.log(content)
+            const response = await fetch(`edit/${postId}`, {
+              method: "PUT", 
+              body: JSON.stringify({
+                content: content, 
+                id: postId,
+              }),
+              headers: {
+                "X-CSRFToken": csrftoken,
+              },
+            })
+            console.log(response)
+          }
+
 
           // // create and append texarea inside
           // const textAreaWrapper = document.createElement("div");
@@ -99,6 +121,22 @@
           // contentDiv.append(saveBtnWrapper);
         }
       })
+    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                // Does this cookie string begin with the name we want?
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
     }
 
     document.addEventListener("DOMContentLoaded", main);

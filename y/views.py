@@ -1,6 +1,6 @@
 from django.contrib.auth import authenticate, login, logout
 from django.db import IntegrityError
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import render
 from django.urls import reverse
 from django.utils import timezone
@@ -8,6 +8,7 @@ from django.core.paginator import Paginator, EmptyPage
 
 from .forms import PostForm
 from .models import User, Post
+import json
 
 
 postsByPage = 10
@@ -194,3 +195,25 @@ def followingView(request, page="1"):
         "previousPageNumber": previousPageNumber,
         "nextPageNumber": nextPageNumber,
     })
+
+def editPost(request, id):
+    if not request.user.is_authenticated:
+        return JsonResponse({"error": "You must be authenticated."}, status=400)
+
+    try:
+        post = Post.objects.get(id=id)
+    except Post.DoesNotExist:
+        return JsonResponse({"error": "Post doesn't exist."}, status=400)
+
+    if request.method != "PUT":
+        return JsonResponse({"error": "PUT request required."}, status=400)
+
+    if post.poster != request.user:
+        return JsonResponse({"error": "You cannot edit someone elses post."}, status=400)
+
+    data = json.loads(request.body)
+    print(data)
+    post.content = data["content"]
+    post.save()
+    print(post, data["content"])
+    return JsonResponse({"message": "Edit request sent successfully.", "postContent": post.content}, status=201)
