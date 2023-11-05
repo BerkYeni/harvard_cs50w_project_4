@@ -31,20 +31,11 @@ class Post(m.Model):
     def __str__(self) -> str:
         return f"{self.poster}: '{self.content}' at {self.date}"
 
-    def likePostBy(self, user):
-        if not user in self.likedBy:
-            self.likedBy.add(user)
-            self.likes += 1
-            self.save()
-    
-    def unlikePostBy(self, user):
-        if user in self.likedBy:
+    def toggleLikeBy(self, user):
+        if user in self.likedBy.all():
             self.likedBy.remove(user)
             self.likes -= 1
-            self.save()
-
-    # def save(self, *args, **kwargs):
-    #     ''' On save, update timestamps '''
-    #     if not self.id:
-    #         self.created = timezone.now()
-    #     return super(User, self).save(*args, **kwargs)
+        else:
+            self.likedBy.add(user)
+            self.likes += 1
+        self.save()

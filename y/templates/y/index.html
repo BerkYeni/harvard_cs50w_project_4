@@ -43,7 +43,18 @@
           </div>
         </div>
       </div>
-      <div>Likes: {{ post.likes }}</div>
+      <div>
+        Likes: <span class="likeAmount" data-id="{{post.id}}">{{ post.likes }}</span>
+        {% if user.is_authenticated %}
+          <button style="margin-left: 20px;" data-id="{{post.id}}" class="likeBtn">
+            {% if post.isLiked %}
+              Unlike
+            {% else %}
+              Like
+            {% endif %}
+          </button>
+        {% endif %}
+      </div>
     </div>
   {% empty %}
     <div>No posts.</div>
@@ -68,28 +79,22 @@
 
     function main() {
       const editButtons = document.querySelectorAll(".editBtn");
-      const contentTexts = Array.from(document.querySelectorAll(".contentText"));
-      const contentDivs = Array.from(document.querySelectorAll(".contentDiv"));
-      const editAreas = Array.from(document.querySelectorAll(".editArea"));
 
+      // add event listeners to edit buttons
       editButtons.forEach((btn) => {
         btn.onclick = (event) => {
           const postId = btn.dataset.id;
-          const contentText = contentTexts.filter((div) => div.dataset.id === postId)[0]
-          contentText.hidden = !contentText.hidden;
-          
-          const editArea = editAreas.filter((div) => div.dataset.id === postId)[0];
-          editArea.hidden = !editArea.hidden;
 
-          const saveBtns = Array.from(document.querySelectorAll(".saveBtn"));
-          console.log(saveBtns)
-          const saveBtn = saveBtns.filter((btn) => btn.dataset.id === postId)[0];
-          console.log(saveBtn)
+          // hide old post and replace with edit area
+          const [contentText, editArea] = toggleEditMode(postId);
+
+          // get the csrf token
           const csrftoken = getCookie('csrftoken');
+
+          const saveBtn = document.querySelector(`.saveBtn[data-id="${postId}"]`);
 
           saveBtn.onclick = async (event) => {
             const content = editArea.querySelector("textarea").value;
-            console.log(content)
             const response = await fetch(`edit/${postId}`, {
               method: "PUT", 
               body: JSON.stringify({
@@ -100,27 +105,51 @@
                 "X-CSRFToken": csrftoken,
               },
             })
-            console.log(response)
+
+            if (response.status === 201) {
+              // hide edit mode, replace the content with request content
+              const [contentText, editArea] = toggleEditMode(postId);
+              contentText.textContent = content;
+            }
           }
 
-
-          // // create and append texarea inside
-          // const textAreaWrapper = document.createElement("div");
-          // textAreaWrapper.style = "display: flex; flex-direction: column;";
-          // const textArea = document.createElement("textarea");
-          // textArea.textContent = textContent;
-          // textAreaWrapper.appendChild(textArea);
-          // contentDiv.appendChild(textAreaWrapper);
-
-          // // append save button
-          // const saveBtnWrapper = document.createElement("div");
-          // saveBtnWrapper.style = "display: flex; justify-content: end;";
-          // const saveBtn = document.createElement("button");
-          // saveBtn.textContent = "Save"
-          // saveBtnWrapper.appendChild(saveBtn);
-          // contentDiv.append(saveBtnWrapper);
         }
       })
+
+      const likeButtons = Array.from(document.querySelectorAll(".likeBtn"));
+
+      // add event listeners to like buttons
+      likeButtons.forEach((btn) => {
+        const postId = btn.dataset.id;
+        const csrftoken = getCookie('csrftoken');
+        btn.onclick = async (event) => {
+          // send like request
+          const response = await fetch(`like/${postId}`, {
+            method: "PUT",
+            headers: {
+              "X-CSRFToken": csrftoken,
+            },
+          });
+          
+          if (response.status === 201) {
+            const likeAmountElement = document.querySelector(`.likeAmount[data-id="${postId}"]`);
+            const data = await response.json();
+            likeAmountElement.textContent = data.likes;
+          }
+        }
+      })
+
+
+    }
+
+    function toggleEditMode(postId) {
+      const contentText = document.querySelector(`.contentText[data-id="${postId}"]`);
+      const editArea = document.querySelector(`.editArea[data-id="${postId}"]`);
+
+      contentText.hidden = !contentText.hidden;
+      editArea.hidden = !editArea.hidden;
+
+      return [contentText, editArea];
     }
 
     function getCookie(name) {
@@ -142,13 +171,5 @@
     document.addEventListener("DOMContentLoaded", main);
 </script>
 
-  <!-- <form action="">
-    <div style="display: flex; flex-direction: column;">
-    <textarea name="content" id="new-post-input" cols="100" rows="5" style="display: inline-block;"></textarea>
-    <div style="display: flex; justify-content: end; padding-top: 5px;">
-      <input type="submit" name="newPost" value="Post" style="display: inline-block;">
-    </div>
-    </div>
-  </form> -->
   </div>
 {% endblock %}

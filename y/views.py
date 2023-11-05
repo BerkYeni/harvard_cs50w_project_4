@@ -13,6 +13,10 @@ import json
 
 postsByPage = 10
 
+# TODO: change the site structure so i render post list dynamically.
+# create a new view and return the post list, receive it on the frontend and append.
+# delete post lists from following, index and user templates and create a new template for posts.
+
 def index(request, page="1"):
     pageInt = int(page)
     if pageInt < 1:
@@ -52,6 +56,10 @@ def index(request, page="1"):
     nextPageNumber = pageObj.next_page_number() if nextPageExists else None
 
     posts = pageObj.object_list
+    if request.user.is_authenticated:
+        for post in posts:
+            if post in request.user.likedPosts.all():
+                post.isLiked = True
 
     return render(request, "y/index.html", {
         "postForm": postForm,
@@ -212,8 +220,21 @@ def editPost(request, id):
         return JsonResponse({"error": "You cannot edit someone elses post."}, status=400)
 
     data = json.loads(request.body)
-    print(data)
     post.content = data["content"]
     post.save()
-    print(post, data["content"])
-    return JsonResponse({"message": "Edit request sent successfully.", "postContent": post.content}, status=201)
+    return JsonResponse({"message": "Edit request sent successfully."}, status=201)
+
+def likePost(request, id):
+    if not request.user.is_authenticated:
+        return JsonResponse({"error": "You must be authenticated."}, status=400)
+
+    try:
+        post = Post.objects.get(id=id)
+    except Post.DoesNotExist:
+        return JsonResponse({"error": "Post doesn't exist."}, status=400)
+
+    if request.method != "PUT":
+        return JsonResponse({"error": "PUT request required."}, status=400)
+
+    post.toggleLikeBy(request.user)
+    return JsonResponse({"message": "Like request sent successfully.", "likes": post.likes}, status=201)
