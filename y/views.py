@@ -18,10 +18,6 @@ postsByPage = 10
 # delete post lists from following, index and user templates and create a new template for posts.
 
 def index(request, page="1"):
-    pageInt = int(page)
-    if pageInt < 1:
-        return HttpResponseRedirect(reverse("index"))
-
     if request.method == "POST":
         if not request.user.is_authenticated:
             return HttpResponseRedirect(reverse("index"))
@@ -41,28 +37,37 @@ def index(request, page="1"):
 
     postForm = PostForm
 
-    paginator = Paginator(Post.objects.order_by("-date"), postsByPage)
-    paginator.allow_empty_first_page = True
-
-    try:
-        pageObj = paginator.page(pageInt)
-    except EmptyPage:
-        return HttpResponseRedirect(reverse("indexPagination", args=[paginator.num_pages]))
-
-    previousPageNumber = pageInt - 1 if pageInt - 1 >= 1 else None
-
-    nextPageExists = pageObj.has_next()
-
-    nextPageNumber = pageObj.next_page_number() if nextPageExists else None
-
-    posts = pageObj.object_list
-    if request.user.is_authenticated:
-        for post in posts:
-            if post in request.user.likedPosts.all():
-                post.isLiked = True
-
     return render(request, "y/index.html", {
         "postForm": postForm,
+        "page": page,
+    })
+
+def feed(request):
+    posts = None
+
+    feed = request.GET.get("feed", "index")
+    page = request.GET.get("page", "1")
+    if feed == "index":
+        try:
+            posts, nextPageNumber, previousPageNumber, paginator = fetchIndexFeed(request, page)
+        except PageNumberTooBig:
+            return JsonResponse({
+                "error": "Page number too big.", 
+                "redirectTo": reverse("indexPagination", args=[paginator.num_pages]),
+            }, status=400)
+            # return HttpResponseRedirect(reverse("indexPagination", args=[paginator.num_pages]))
+    elif feed == "following":
+        ...
+
+    elif feed == "user":
+        ...
+        # redirect if not authenticated
+        # if request.user.is_authenticated:
+        #     return HttpResponseRedirect(reverse("index"))
+        ...
+    
+    # return html response
+    return render(request, "y/feed.html", {
         "posts": posts,
         "nextPageNumber": nextPageNumber,
         "previousPageNumber": previousPageNumber,
@@ -238,3 +243,78 @@ def likePost(request, id):
 
     post.toggleLikeBy(request.user)
     return JsonResponse({"message": "Like request sent successfully.", "likes": post.likes}, status=201)
+
+
+def fetchIndexFeed(request, page="1"):
+    query = Post.objects.order_by("-date")
+    return paginate(request, query, page)
+
+def fetchUserFeed(request, page="1", user=None):
+    if request.user == user:
+        ...
+    query = user.user_posts.order_by("-date")
+    return paginate(request, query, page)
+
+def fetchFollowingFeed(request, page="1", user=None):
+    if request.user.is_authenticated:
+        ...
+    if user == None:
+        ...
+    query = user.user_posts.order_by("-date")
+    return paginate(request, query, page)
+
+    # make query based on feed
+    # if feed == "index":
+    #     query = Post.objects.order_by("-date")
+    #     ...
+    # elif feed == "following" or feed == "user":
+    #     # redirect if not authenticated
+    #     if request.user.is_authenticated:
+    #         raise UserNotSignedIn
+    #         # return HttpResponseRedirect(reverse("index"))
+    #     ...
+    #     if feed == "user":
+    #         if otherUser == None:
+    #             raise NoUserGiven
+    #         otherUser.user_posts.order_by("-date")
+
+
+
+def paginate(request, query, page="1"):
+
+    pageInt = int(page)
+    if pageInt < 1:
+        return HttpResponseRedirect(reverse("index"))
+
+    paginator = Paginator(query, postsByPage)
+    paginator.allow_empty_first_page = True
+
+    try:
+        pageObj = paginator.page(pageInt)
+    except EmptyPage:
+        raise PageNumberTooBig
+        # return HttpResponseRedirect(reverse("indexPagination", args=[paginator.num_pages]))
+
+    previousPageNumber = pageInt - 1 if pageInt - 1 >= 1 else None
+
+    nextPageExists = pageObj.has_next()
+
+    nextPageNumber = pageObj.next_page_number() if nextPageExists else None
+
+    posts = pageObj.object_list
+    if request.user.is_authenticated:
+        for post in posts:
+            if post in request.user.likedPosts.all():
+                post.isLiked = True
+
+    return [posts, nextPageNumber, previousPageNumber, paginator]
+
+
+class PageNumberTooBig(BaseException):
+    pass
+
+class NoUserGiven(BaseException):
+    pass
+
+class UserNotSignedIn(BaseException):
+    pass

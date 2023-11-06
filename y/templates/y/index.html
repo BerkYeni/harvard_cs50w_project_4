@@ -1,6 +1,7 @@
 {% extends "y/layout.html" %}
 
 {% block body %}
+  <input id="pageInt" type="hidden" value="{{page}}">
   {% if user.is_authenticated %}
   <div style="background-color: white; border: 1px solid cornsilk; border-radius: 10px; padding: 15px 30px; margin-top: 20px;">
     <h3>New Post</h3>
@@ -16,60 +17,7 @@
   </div>
   {% endif %}
 
-  {% for post in posts %}
-    <div style="
-      background-color: white; 
-      border: 1px solid cornsilk; 
-      border-radius: 10px; 
-      padding: 15px 30px; 
-      margin-top: 20px;"
-
-    >
-      <div style="display: flex; justify-content: space-between;">
-        <a href="{% url 'user' username=post.poster.username %}"><div>{{post.poster}}:</div></a>
-        <div style="display: flex;">
-          {% if post.poster.username == user.username %}
-            <button class="editBtn" data-id="{{post.id}}" style="margin: 0 20px;">Edit</button>
-          {% endif %}
-          <div>{{post.date}}</div>
-        </div>
-      </div>
-      <div class="contentDiv" data-id="{{post.id}}">
-        <strong class="contentText" data-id="{{post.id}}">{{post.content}}</strong>
-        <div hidden class="editArea" data-id="{{post.id}}" style="display: flex; flex-direction: column;">
-          <textarea>{{post.content}}</textarea>
-          <div style="display: flex; justify-content: end;">
-            <button class="saveBtn" data-id="{{post.id}}">Save</button>
-          </div>
-        </div>
-      </div>
-      <div>
-        Likes: <span class="likeAmount" data-id="{{post.id}}">{{ post.likes }}</span>
-        {% if user.is_authenticated %}
-          <button style="margin-left: 20px;" data-id="{{post.id}}" class="likeBtn">
-            {% if post.isLiked %}
-              Unlike
-            {% else %}
-              Like
-            {% endif %}
-          </button>
-        {% endif %}
-      </div>
-    </div>
-  {% empty %}
-    <div>No posts.</div>
-  {% endfor %}
-
-  <div style="display: flex; justify-content: space-around; margin-top: 20px;">
-      <div>
-      {% if previousPageNumber %}
-        <a href="{% url 'indexPagination' page=previousPageNumber %}"><button style="padding: 5px 15px; margin-right: 10px;">Previous</button></a>
-      {% endif %}
-      {% if nextPageNumber %}
-        <a href="{% url 'indexPagination' page=nextPageNumber %}"><button style="padding: 5px 15px;">Next</button></a>
-      {% endif %}
-      </div>
-  </div>
+  <div id="feed"></div>
 
 <script>
     // Prevent resubmitting form alert
@@ -78,6 +26,17 @@
     }
 
     function main() {
+      // fetch feed and populate page
+      const page = document.querySelector("#pageInt").value;
+      fetchFeedAndPopulate("index", page);
+    }
+
+    async function fetchFeedAndPopulate(feed, page) {
+      const feedResponse = await fetch(`feed?feed=${feed}&page=${page}`);
+      const responseHtml = await feedResponse.text();
+      const feedElement = document.querySelector("#feed");
+      feedElement.innerHTML = responseHtml;
+
       const editButtons = document.querySelectorAll(".editBtn");
 
       // add event listeners to edit buttons
@@ -138,8 +97,6 @@
           }
         }
       })
-
-
     }
 
     function toggleEditMode(postId) {
