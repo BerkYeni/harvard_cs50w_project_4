@@ -42,35 +42,82 @@ def index(request, page="1"):
         "page": page,
     })
 
-def feed(request):
-    posts = None
+def pageNumberTooBigResponse(routeName, maxNumPage):
+    return JsonResponse({
+        "error": "Page number too big.", 
+        "redirectTo": reverse(routeName, args=[maxNumPage]),
+    }, status=400)
 
+def userMustBeAuthenticatedResponse():
+    return JsonResponse({
+        "error": "User must be authenticated.", 
+        "redirectTo": reverse("login"),
+    }, status=400)
+
+def userNotProvided():
+    return JsonResponse({
+        "error": "User not provided.", 
+        "redirectTo": reverse("index"),
+    }, status=400)
+
+def userNotFound():
+    return JsonResponse({
+        "error": "User not found.", 
+        "redirectTo": reverse("index"),
+    }, status=400)
+
+def feed(request):
+    # TODO: fix likes in user page.
+    user = None
     feed = request.GET.get("feed", "index")
     page = request.GET.get("page", "1")
     if feed == "index":
-        try:
-            posts, nextPageNumber, previousPageNumber, paginator = fetchIndexFeed(request, page)
-        except PageNumberTooBig:
-            return JsonResponse({
-                "error": "Page number too big.", 
-                "redirectTo": reverse("indexPagination", args=[paginator.num_pages]),
-            }, status=400)
-            # return HttpResponseRedirect(reverse("indexPagination", args=[paginator.num_pages]))
+        pageUrl =  "indexPagination"
+        result = fetchIndexFeed(request, page)
+        if "error" in result:
+            return pageNumberTooBigResponse("indexPagination", result["paginator"].num_pages)
+
     elif feed == "following":
-        ...
+        # if not request.user.is_authenticated:
+        #     return userMustBeAuthenticatedResponse()
+        pageUrl =  "followingPagination"
+        result = fetchFollowingFeed(request, page)
+        if "error" in result:
+            if result["error"] == "User must be authenticated.":
+                return userMustBeAuthenticatedResponse()
+            elif result["error"] == "Empty page.":
+                return pageNumberTooBigResponse("followingPagination", result["paginator"].num_pages)
 
     elif feed == "user":
-        ...
+        # user = User.objects.
+        pageUrl =  "userPagination"
+        username = request.GET.get("username", None)
+        if username == None:
+            return userNotProvided()
+        try:
+            user = User.objects.get(username=username)
+        except User.DoesNotExist:
+            return userNotFound()
+
+        result = fetchUserFeed(request, user, page)
+        if "error" in result:
+            return pageNumberTooBigResponse("userPagination", result["paginator"].num_pages)
+
         # redirect if not authenticated
         # if request.user.is_authenticated:
         #     return HttpResponseRedirect(reverse("index"))
-        ...
     
     # return html response
+    # print(result["nextPageNumber"], result["previousPageNumber"])
+    print(f"previous: {result['previousPageNumber']}")
+    print(f"next: {result['nextPageNumber']}")
     return render(request, "y/feed.html", {
-        "posts": posts,
-        "nextPageNumber": nextPageNumber,
-        "previousPageNumber": previousPageNumber,
+        "isUserPage": True if feed == "user" else None,
+        "pageUser": user,
+        "pageUrl": pageUrl,
+        "posts": result["posts"],
+        "nextPageNumber": result["nextPageNumber"],
+        "previousPageNumber": result["previousPageNumber"],
     })
 
 
@@ -167,7 +214,10 @@ def userView(request, username, page="1"):
 
     selfPage = username == request.user.username
     isFollowed = bool(request.user.following.filter(username=username).count())
+    print(f"page num: {page}")
     return render(request, "y/user.html", {
+        "page": page,
+        "username": username,
         "userData": userData,
         "posts": posts,
         "followerAmount": userData.followerAmount(),
@@ -203,7 +253,8 @@ def followingView(request, page="1"):
 
     posts = pageObj.object_list
 
-    return render(request,  "y/following.html", {
+    return render(request, "y/following.html", {
+        "page": page,
         "posts": posts,
         "previousPageNumber": previousPageNumber,
         "nextPageNumber": nextPageNumber,
@@ -249,18 +300,27 @@ def fetchIndexFeed(request, page="1"):
     query = Post.objects.order_by("-date")
     return paginate(request, query, page)
 
-def fetchUserFeed(request, page="1", user=None):
-    if request.user == user:
-        ...
+def fetchUserFeed(request, user, page="1"):
+    # try:
+    #     user = User.objects.get(username=username)
+    # except User.DoesNotExist:
+    #     return {
+    #         "error": "User not found.",
+    #     }
+
+    # if request.user == user:
+    #     return {
+    #         "error": ""
+    #     }
     query = user.user_posts.order_by("-date")
     return paginate(request, query, page)
 
-def fetchFollowingFeed(request, page="1", user=None):
-    if request.user.is_authenticated:
-        ...
-    if user == None:
-        ...
-    query = user.user_posts.order_by("-date")
+def fetchFollowingFeed(request, page="1",):
+    if not request.user.is_authenticated:
+        return {
+            "error": "User must be authenticated.",
+        }
+    query = Post.objects.filter(poster__in=request.user.following.all()).order_by("-date")
     return paginate(request, query, page)
 
     # make query based on feed
@@ -281,7 +341,6 @@ def fetchFollowingFeed(request, page="1", user=None):
 
 
 def paginate(request, query, page="1"):
-
     pageInt = int(page)
     if pageInt < 1:
         return HttpResponseRedirect(reverse("index"))
@@ -292,7 +351,11 @@ def paginate(request, query, page="1"):
     try:
         pageObj = paginator.page(pageInt)
     except EmptyPage:
-        raise PageNumberTooBig
+        return {
+            "error": "Empty page.",
+            "paginator": paginator,
+        }
+        # raise PageNumberTooBig
         # return HttpResponseRedirect(reverse("indexPagination", args=[paginator.num_pages]))
 
     previousPageNumber = pageInt - 1 if pageInt - 1 >= 1 else None
@@ -307,7 +370,12 @@ def paginate(request, query, page="1"):
             if post in request.user.likedPosts.all():
                 post.isLiked = True
 
-    return [posts, nextPageNumber, previousPageNumber, paginator]
+    return {
+        "posts": posts,
+        "nextPageNumber": nextPageNumber,
+        "previousPageNumber": previousPageNumber,
+        "paginator": paginator,
+    }
 
 
 class PageNumberTooBig(BaseException):

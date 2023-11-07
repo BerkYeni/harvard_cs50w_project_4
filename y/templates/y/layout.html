@@ -45,5 +45,112 @@
             {% block body %}
             {% endblock %}
         </div>
+
+        <script>
+          async function fetchFeedAndPopulate(feed, page, username) {
+            const url = username && feed === "user"
+             ? `/feed?feed=${feed}&page=${page}&username=${username}`
+             : `/feed?feed=${feed}&page=${page}`
+
+            const feedResponse = await fetch(url);
+            // if error came back redirect to provided route
+            if (feedResponse.status === 400) {
+              const responseBody = await feedResponse.json();
+              window.location.replace(responseBody.redirectTo);
+              return;
+            }
+
+            const responseHtml = await feedResponse.text();
+            const feedElement = document.querySelector("#feed");
+            feedElement.innerHTML = responseHtml;
+
+            const editButtons = document.querySelectorAll(".editBtn");
+
+            // add event listeners to edit buttons
+            editButtons.forEach((btn) => {
+              btn.onclick = (event) => {
+                const postId = btn.dataset.id;
+
+                // hide old post and replace with edit area
+                const [contentText, editArea] = toggleEditMode(postId);
+
+                // get the csrf token
+                const csrftoken = getCookie('csrftoken');
+
+                const saveBtn = document.querySelector(`.saveBtn[data-id="${postId}"]`);
+
+                saveBtn.onclick = async (event) => {
+                  const content = editArea.querySelector("textarea").value;
+                  const response = await fetch(`edit/${postId}`, {
+                    method: "PUT", 
+                    body: JSON.stringify({
+                      content: content, 
+                      id: postId,
+                    }),
+                    headers: {
+                      "X-CSRFToken": csrftoken,
+                    },
+                  })
+
+                  if (response.status === 201) {
+                    // hide edit mode, replace the content with request content
+                    const [contentText, editArea] = toggleEditMode(postId);
+                    contentText.textContent = content;
+                  }
+                }
+
+              }
+            })
+
+            const likeButtons = Array.from(document.querySelectorAll(".likeBtn"));
+
+            // add event listeners to like buttons
+            likeButtons.forEach((btn) => {
+              const postId = btn.dataset.id;
+              const csrftoken = getCookie('csrftoken');
+              btn.onclick = async (event) => {
+                // send like request
+                const response = await fetch(`like/${postId}`, {
+                  method: "PUT",
+                  headers: {
+                    "X-CSRFToken": csrftoken,
+                  },
+                });
+                
+                if (response.status === 201) {
+                  const likeAmountElement = document.querySelector(`.likeAmount[data-id="${postId}"]`);
+                  const data = await response.json();
+                  likeAmountElement.textContent = data.likes;
+                }
+              }
+            })
+          }
+
+          function toggleEditMode(postId) {
+            const contentText = document.querySelector(`.contentText[data-id="${postId}"]`);
+            const editArea = document.querySelector(`.editArea[data-id="${postId}"]`);
+
+            contentText.hidden = !contentText.hidden;
+            editArea.hidden = !editArea.hidden;
+
+            return [contentText, editArea];
+          }
+
+          function getCookie(name) {
+              let cookieValue = null;
+              if (document.cookie && document.cookie !== '') {
+                  const cookies = document.cookie.split(';');
+                  for (let i = 0; i < cookies.length; i++) {
+                      const cookie = cookies[i].trim();
+                      // Does this cookie string begin with the name we want?
+                      if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                          break;
+                      }
+                  }
+              }
+              return cookieValue;
+          }
+        </script>
     </body>
 </html>
