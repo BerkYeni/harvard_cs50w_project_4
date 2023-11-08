@@ -23,45 +23,13 @@
       <div style="margin-left: 30px;">Following: {{followingAmount}}</div>
     </div>
 
-    <!-- <div style="background-color: white; border: 1px solid cornsilk; border-radius: 10px; padding: 15px 30px; margin-top: 20px;">
-      {% for post in posts %}
-        <div style="
-          background-color: white; 
-          border: 1px solid cornsilk; 
-          border-radius: 10px; 
-          padding: 15px 30px; 
-          margin-top: 20px;"
-
-        >
-          <div style="display: flex; justify-content: space-between;">
-            <a href="{% url 'user' username=post.poster.username %}"><div>{{post.poster}}:</div></a>
-            <div>{{post.date}}</div>
-          </div>
-          <div><strong>{{post.content}}</strong></div>
-          <div>Likes: {{ post.likes }}</div>
-        </div>
-      {% empty %}
-        <div>No user posts.</div>
-      {% endfor %}
-    </div> -->
-
-  <!-- <div style="display: flex; justify-content: space-around; margin-top: 20px;">
-      <div>
-      {% if previousPageNumber %}
-        <a href="{% url 'userPagination' page=previousPageNumber username=user.username %}"><button style="padding: 5px 15px; margin-right: 10px;">Previous</button></a>
-      {% endif %}
-      {% if nextPageNumber %}
-        <a href="{% url 'userPagination' page=nextPageNumber username=user.username %}"><button style="padding: 5px 15px;">Next</button></a>
-      {% endif %}
-      </div>
-  </div> -->
-
     <div id="feed"></div>
     <script>
       function main() {
         // fetch feed and populate page
         const page = document.querySelector("#pageInt").value;
         const username = document.querySelector("#username").value;
+        console.log(username)
         fetchFeedAndPopulate("user", page, username);
       }
       document.addEventListener("DOMContentLoaded", main);

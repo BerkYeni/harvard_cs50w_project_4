@@ -81,7 +81,7 @@
 
                 saveBtn.onclick = async (event) => {
                   const content = editArea.querySelector("textarea").value;
-                  const response = await fetch(`edit/${postId}`, {
+                  const response = await fetch(`/edit/${postId}`, {
                     method: "PUT", 
                     body: JSON.stringify({
                       content: content, 
@@ -110,7 +110,7 @@
               const csrftoken = getCookie('csrftoken');
               btn.onclick = async (event) => {
                 // send like request
-                const response = await fetch(`like/${postId}`, {
+                const response = await fetch(`/like/${postId}`, {
                   method: "PUT",
                   headers: {
                     "X-CSRFToken": csrftoken,
@@ -121,6 +121,11 @@
                   const likeAmountElement = document.querySelector(`.likeAmount[data-id="${postId}"]`);
                   const data = await response.json();
                   likeAmountElement.textContent = data.likes;
+                  console.log(btn.textContent.trim())
+                  console.log(btn.textContent === "Like")
+                  const btnText = btn.textContent.trim() === "Like" ? "Unlike" : "Like";
+                  console.log(btnText)
+                  btn.textContent = btnText;
                 }
               }
             })
